@@ -49,7 +49,8 @@ export default {
   methods: {
     initTinymce () {
 
-    }
+    },
+
   },
   components: {Editor}
 }

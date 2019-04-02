@@ -64,7 +64,8 @@
         <el-table
           :data="tableData"
           style="width: 100%"
-          :header-cell-style="getRowClass">
+          :header-cell-style="getRowClass"
+          @sort-change="mySortable">
           <el-table-column
             prop="titleName"
             label="题目名称"
@@ -105,7 +106,7 @@
           <el-table-column
             prop="creatTime"
             label="创建时间"
-            sortable
+            sortable="custom"
           >
             <template slot-scope="scope">
               <span :class="[!scope.row.isGoing ? 'active' : '' ]">{{scope.row.creatTime}}</span>
@@ -125,10 +126,10 @@
             width="260px"
           >
             <template slot-scope="scope">
-              <el-button @click="handleClick(scope.row)" type="text" size="small" :class="[!scope.row.isGoing ? 'active' : '' ]" :disabled="scope.row.isGoing?false:true">复制</el-button>
-              <el-button type="text" size="small" :class="[!scope.row.isGoing ? 'active' : '' ]" :disabled="scope.row.isGoing?false:true">查看</el-button>
-              <el-button type="text" size="small" :class="[!scope.row.isGoing ? 'active' : '' ]" :disabled="scope.row.isGoing?false:true">分享</el-button>
-              <el-button type="text" size="small" :class="[!scope.row.isGoing ? 'active' : '' ]" :disabled="scope.row.isGoing?false:true">编辑</el-button>
+              <el-button type="text" size="small" :class="[!scope.row.isGoing ? 'active' : '' ]" :disabled="scope.row.isGoing?false:true">复制</el-button>
+              <el-button @click="showSubjectInfo(scope.row)" type="text" size="small" :class="[!scope.row.isGoing ? 'active' : '' ]" :disabled="scope.row.isGoing?false:true">查看</el-button>
+              <el-button @click="share" type="text" size="small" :class="[!scope.row.isGoing ? 'active' : '' ]" :disabled="scope.row.isGoing?false:true">分享</el-button>
+              <el-button @click="editSubject(scope.row)" type="text" size="small" :class="[!scope.row.isGoing ? 'active' : '' ]" :disabled="scope.row.isGoing?false:true">编辑</el-button>
               <el-button type="text" size="small" @click="changeState(scope.row)">{{scope.row.isGoing ? '停用' : '启用'}}</el-button>
             </template>
           </el-table-column>
@@ -163,22 +164,27 @@
                   :subjectClassList="subjectClassList"
                   :subjectScouseList="subjectScouseList"
                   :averageList="averageList"></creatSubject>
+    <showSubjectInfo :is-show.sync="isOnShowSubjectInfo"
+                  :subjectInfo="subjectInfo"></showSubjectInfo>
   </div>
 </template>
 
 <script>
 import creatSubject from '../components/creatSubject'
+import showSubjectInfo from '../components/showSubjectInfo'
 
 var AV = require('leancloud-storage')
 
 export default {
   name: 'SubjectList',
   components: {
-    creatSubject
+    creatSubject,
+    showSubjectInfo
   },
   data () {
     return {
       isOnCreateSubject: false,
+      isOnShowSubjectInfo:false,
       subjectNameList: [],
       subjectClassList: [],
       subjectScouseList: [],
@@ -191,7 +197,9 @@ export default {
       input: '',
       tableData: [],
       count: 0,
-      page: 0
+      page: 0,
+      order:'',
+      subjectInfo:{}
     }
   },
   mounted () {
@@ -202,9 +210,34 @@ export default {
     this.getAverageList()
   },
   activated () {
-    console.log(1111111111)
+    if(this.$route.meta.isBack){
+      this.getSubjectInfoList()
+    }
   },
   methods: {
+    share(){
+      this.$message({
+        message: '分享成功',
+        type: 'success'
+      });
+    },
+    showSubjectInfo(row){
+      this.subjectInfo = row
+      this.isOnShowSubjectInfo = true
+    },
+    editSubject(row){
+      this.$router.push('/checkSubject' + row.id)
+    },
+    /*
+    * 后台排序
+    * */
+    mySortable (column, prop, order) {
+      this.order = column.order
+      this.getSubjectInfoList()
+    },
+    /*
+    * 表头样式
+    * */
     getRowClass ({row, column, rowIndex, columnIndex}) {
       if (rowIndex === 0) {
         return 'background:#EFEFEF;height:64px'
@@ -227,19 +260,30 @@ export default {
     * */
     getSubjectInfoList () {
       var query = new AV.Query('SubjectInfoList')
+      if(this.order == 'ascending'){
+        query.ascending('createdAt');
+      }
+      if(this.order == 'descending'){
+        query.descending('createdAt');
+      }
       if (this.subjectName !== '') {
+        this.page = 0
         query.equalTo('subjectName', AV.Object.createWithoutData('SubjectName', this.subjectName));
       }
       if (this.subjectClass !== '') {
+        this.page = 0
         query.equalTo('subjectClass', AV.Object.createWithoutData('SubjectName', this.subjectClass));
       }
       if (this.subjectScouse !== '') {
+        this.page = 0
         query.equalTo('subjectScouse', AV.Object.createWithoutData('SubjectName', this.subjectScouse));
       }
       if (this.average !== '') {
+        this.page = 0
         query.equalTo('average', AV.Object.createWithoutData('SubjectName', this.average));
       }
       if(this.input !== ''){
+        this.page = 0
         query.contains('titleName', this.input)
       }
       query.count().then(data => {
@@ -325,7 +369,6 @@ export default {
           }
           return info
         })
-        console.log(this.subjectNameList)
       })
     },
     getSubjectScouse () {
@@ -403,10 +446,17 @@ export default {
     }
     .subject-item{
       margin-right: 0px !important;
+      width:auto !important;
     }
     .main{
       width: 100% !important;
       margin: 26px 0 0 0 !important;
+    }
+  }
+  @media (max-width: 320px) {
+    .subject-item{
+      margin-right: 0px !important;
+      width:164px !important;
     }
   }
   .contain{
@@ -426,7 +476,7 @@ export default {
      justify-content: space-between;
    }
   .subject-item{
-    /*width: 164px;*/
+    width: 164px;
     height: 100%;
     display: flex;
     justify-content:center;

@@ -118,9 +118,6 @@ export default {
     }
   },
   methods: {
-    show () {
-      this.isShow = true
-    },
     sendSubjectInfo () {
       if (this.subjectInfo.titleName && this.subjectInfo.subjectName && this.subjectInfo.subjectClass && this.subjectInfo.subjectScouse && this.subjectInfo.average) {
         this.$emit('sendSubjectInfo', this.subjectInfo)

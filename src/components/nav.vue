@@ -41,7 +41,7 @@ export default {
   methods: {
     handleSelect (key) {
       if (key == 1) {
-        this.$router.push('/')
+        this.$router.push('/subjectList')
       } else {
         this.$router.push('/tinymce')
       }
